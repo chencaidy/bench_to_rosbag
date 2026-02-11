@@ -427,9 +427,9 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     print(f"Loading scene {scene_name}")
 
     # Read nuScenes map
-    location = "Town01"
-    print(f"Loading map {location}")
-    nusc_map = NuScenesMap(dataroot=str(map), map_name=location)
+    map_name = scene_name.split("_")[1]
+    print(f"Loading map {map_name}")
+    nusc_map = NuScenesMap(dataroot=str(map), map_name=map_name)
     nusc_map_explorer = NuScenesMapExplorer(nusc_map)
 
     # Create writer
@@ -585,7 +585,9 @@ def main():
     )
 
     args = parser.parse_args()
-    write_scene_to_mcap(args.dataset_dir, args.map_dir, args.output_dir)
+    for scene in args.dataset_dir.iterdir():
+        if scene.is_dir() and not scene.name.startswith("."):
+            write_scene_to_mcap(scene, args.map_dir, args.output_dir)
 
 
 if __name__ == "__main__":
