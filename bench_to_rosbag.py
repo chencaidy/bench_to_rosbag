@@ -420,15 +420,16 @@ def get_vector_map(map_explorer: NuScenesMapExplorer, bounding_boxes: dict, stam
     return msg
 
 
-def write_scene_to_mcap(scene: Path, rosbag: Path):
-    scene_name = scene.name
-    print(f"Loading scene {scene_name}")
+def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     timestamp_ns = time.time_ns()
     print(f"Using base timestamp {timestamp_ns}")
+    scene_name = scene.name
+    print(f"Loading scene {scene_name}")
 
+    # Read nuScenes map
     location = "Town01"
     print(f"Loading map {location}")
-    nusc_map = NuScenesMap(dataroot="/home/chen/nuscenes", map_name=location)
+    nusc_map = NuScenesMap(dataroot=str(map), map_name=location)
     nusc_map_explorer = NuScenesMapExplorer(nusc_map)
 
     # Create writer
@@ -584,7 +585,7 @@ def main():
     )
 
     args = parser.parse_args()
-    write_scene_to_mcap(args.dataset_dir, args.output_dir)
+    write_scene_to_mcap(args.dataset_dir, args.map_dir, args.output_dir)
 
 
 if __name__ == "__main__":
