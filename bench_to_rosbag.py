@@ -500,11 +500,32 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
         cur_stamp = index * 100000000 + timestamp_ns
         with gzip.open(file, mode="rt", encoding="utf-8") as f:
             print(f"Reading {file} @ {cur_stamp}")
-
             anno = json.load(f)
             bounding_boxes = anno["bounding_boxes"]
+            sensors = anno["sensors"]
+
+            msg = get_tf(bounding_boxes, cur_stamp)
+            writer.write("/tf", serialize_message(msg), cur_stamp)
+            msg = get_static_tf(sensors, cur_stamp)
+            writer.write("/tf_static", serialize_message(msg), cur_stamp)
+
             msg = get_annotation_markers(bounding_boxes, cur_stamp)
             writer.write("/markers/annotations", serialize_message(msg), cur_stamp)
+            msg = get_vector_map(nusc_map_explorer, bounding_boxes, cur_stamp)
+            writer.write("/markers/map", serialize_message(msg), cur_stamp)
+
+            msg = get_camera_info(sensors, "CAM_FRONT", cur_stamp)
+            writer.write("/CAM_FRONT/camera_info", serialize_message(msg), cur_stamp)
+            msg = get_camera_info(sensors, "CAM_FRONT_RIGHT", cur_stamp)
+            writer.write("/CAM_FRONT_RIGHT/camera_info", serialize_message(msg), cur_stamp)
+            msg = get_camera_info(sensors, "CAM_BACK_RIGHT", cur_stamp)
+            writer.write("/CAM_BACK_RIGHT/camera_info", serialize_message(msg), cur_stamp)
+            msg = get_camera_info(sensors, "CAM_BACK", cur_stamp)
+            writer.write("/CAM_BACK/camera_info", serialize_message(msg), cur_stamp)
+            msg = get_camera_info(sensors, "CAM_BACK_LEFT", cur_stamp)
+            writer.write("/CAM_BACK_LEFT/camera_info", serialize_message(msg), cur_stamp)
+            msg = get_camera_info(sensors, "CAM_FRONT_LEFT", cur_stamp)
+            writer.write("/CAM_FRONT_LEFT/camera_info", serialize_message(msg), cur_stamp)
 
             image_name = file.name.replace(".json.gz", ".jpg")
             msg = get_camera(scene.joinpath("camera", "rgb_front", image_name), "CAM_FRONT", cur_stamp)
@@ -519,25 +540,6 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
             writer.write("/CAM_BACK_LEFT/compressed", serialize_message(msg), cur_stamp)
             msg = get_camera(scene.joinpath("camera", "rgb_front_left", image_name), "CAM_FRONT_LEFT", cur_stamp)
             writer.write("/CAM_FRONT_LEFT/compressed", serialize_message(msg), cur_stamp)
-
-            sensors = anno["sensors"]
-            msg = get_camera_info(sensors, "CAM_FRONT", cur_stamp)
-            writer.write("/CAM_FRONT/camera_info", serialize_message(msg), cur_stamp)
-            msg = get_camera_info(sensors, "CAM_FRONT_RIGHT", cur_stamp)
-            writer.write("/CAM_FRONT_RIGHT/camera_info", serialize_message(msg), cur_stamp)
-            msg = get_camera_info(sensors, "CAM_BACK_RIGHT", cur_stamp)
-            writer.write("/CAM_BACK_RIGHT/camera_info", serialize_message(msg), cur_stamp)
-            msg = get_camera_info(sensors, "CAM_BACK", cur_stamp)
-            writer.write("/CAM_BACK/camera_info", serialize_message(msg), cur_stamp)
-            msg = get_camera_info(sensors, "CAM_BACK_LEFT", cur_stamp)
-            writer.write("/CAM_BACK_LEFT/camera_info", serialize_message(msg), cur_stamp)
-            msg = get_camera_info(sensors, "CAM_FRONT_LEFT", cur_stamp)
-            writer.write("/CAM_FRONT_LEFT/camera_info", serialize_message(msg), cur_stamp)
-
-            msg = get_tf(bounding_boxes, cur_stamp)
-            writer.write("/tf", serialize_message(msg), cur_stamp)
-            msg = get_static_tf(sensors, cur_stamp)
-            writer.write("/tf_static", serialize_message(msg), cur_stamp)
 
             pointcloud_name = file.name.replace(".json.gz", ".laz")
             msg = get_lidar(scene.joinpath("lidar", pointcloud_name), "LIDAR_TOP", cur_stamp)
@@ -554,9 +556,6 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
             writer.write("/RADAR_BACK_LEFT", serialize_message(msg), cur_stamp)
             msg = get_radar(scene.joinpath("radar", radar_name), "radar_back_right", "RADAR_BACK_RIGHT", cur_stamp)
             writer.write("/RADAR_BACK_RIGHT", serialize_message(msg), cur_stamp)
-
-            msg = get_vector_map(nusc_map_explorer, bounding_boxes, cur_stamp)
-            writer.write("/markers/map", serialize_message(msg), cur_stamp)
 
 
 def main():
