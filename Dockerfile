@@ -13,6 +13,7 @@ RUN apt-get update \
 && rm -rf /var/lib/apt/lists/*
 
 RUN pip install nuscenes-devkit --break-system-packages
+RUN sed -i "/locations = /a\locations = locations + ['Town01', 'Town02', 'Town03', 'Town04', 'Town05', 'Town06', 'Town07', 'Town10HD', 'Town11', 'Town12', 'Town13', 'Town15']" /usr/local/lib/python3.12/dist-packages/nuscenes/map_expansion/map_api.py
 
 COPY . /work
 
