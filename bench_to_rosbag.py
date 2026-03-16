@@ -420,6 +420,85 @@ def get_vector_map(map_explorer: NuScenesMapExplorer, bounding_boxes: dict, stam
     return msg
 
 
+def get_odom(anno: dict, stamp: int):
+    msg = Odometry()
+    speed = anno["speed"]
+    angular_vel = rotation_fru_to_flu(anno["angular_velocity"])
+    bounding_boxes = anno["bounding_boxes"]
+
+    msg.header.stamp.sec = int(stamp / 1e9)
+    msg.header.stamp.nanosec = int(stamp % 1e9)
+    msg.header.frame_id = "map"
+    msg.child_frame_id = "base_link"
+    msg.twist.twist.linear.x = speed
+    msg.twist.twist.angular.x = angular_vel[0]
+    msg.twist.twist.angular.y = angular_vel[1]
+    msg.twist.twist.angular.z = angular_vel[2]
+
+    for bbox in bounding_boxes:
+        if bbox["class"] == "ego_vehicle":
+            translation = location_fru_to_flu(bbox["location"])
+            msg.pose.pose.position.x = translation[0]
+            msg.pose.pose.position.y = translation[1]
+            msg.pose.pose.position.z = translation[2]
+            rotation = rotation_fru_to_flu(bbox["rotation"])
+            quaternion = R.from_euler("xyz", rotation, degrees=True).as_quat()
+            msg.pose.pose.orientation.w = quaternion[3]
+            msg.pose.pose.orientation.x = quaternion[0]
+            msg.pose.pose.orientation.y = quaternion[1]
+            msg.pose.pose.orientation.z = quaternion[2]
+
+    return msg
+
+
+def get_imu(anno: dict, stamp: int):
+    msg = Imu()
+    accel = location_fru_to_flu(anno["acceleration"])
+    angular_vel = rotation_fru_to_flu(anno["angular_velocity"])
+    bounding_boxes = anno["bounding_boxes"]
+
+    msg.header.stamp.sec = int(stamp / 1e9)
+    msg.header.stamp.nanosec = int(stamp % 1e9)
+    msg.header.frame_id = "base_link"
+    msg.linear_acceleration.x = accel[0]
+    msg.linear_acceleration.y = accel[1]
+    msg.linear_acceleration.z = accel[2]
+    msg.angular_velocity.x = angular_vel[0]
+    msg.angular_velocity.y = angular_vel[1]
+    msg.angular_velocity.z = angular_vel[2]
+
+    for bbox in bounding_boxes:
+        if bbox["class"] == "ego_vehicle":
+            rotation = rotation_fru_to_flu(bbox["rotation"])
+            quaternion = R.from_euler("xyz", rotation, degrees=True).as_quat()
+            msg.orientation.w = quaternion[3]
+            msg.orientation.x = quaternion[0]
+            msg.orientation.y = quaternion[1]
+            msg.orientation.z = quaternion[2]
+
+    return msg
+
+
+def get_steering(anno: dict, stamp: int):
+    msg = DiagnosticArray()
+    msg.header.stamp.sec = int(stamp / 1e9)
+    msg.header.stamp.nanosec = int(stamp % 1e9)
+    status = DiagnosticStatus()
+    status.level = DiagnosticStatus.OK
+    status.name = "Steering Angle"
+    status.message = "OK"
+    kv1 = KeyValue()
+    kv1.key = "utime"
+    kv1.value = str(stamp)
+    status.values.append(kv1)
+    kv2 = KeyValue()
+    kv2.key = "value"
+    kv2.value = str(anno["steer"])
+    status.values.append(kv2)
+    msg.status.append(status)
+    return msg
+
+
 def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     timestamp_ns = time.time_ns()
     print(f"Using base timestamp {timestamp_ns}")
@@ -444,10 +523,10 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     latch_qos = rosbag2_py._storage.QoS(1).transient_local()
     # writer.create_topic(rosbag2_py.TopicMetadata(0, "/map", "foxglove_msgs/msg/Grid", "cdr", [latch_qos]))
     # writer.create_topic(rosbag2_py.TopicMetadata(0, "/semantic_map", "visualization_msgs/msg/MarkerArray", "cdr", [latch_qos]))
-    # writer.create_topic(rosbag2_py.TopicMetadata(0, "/imu", "sensor_msgs/msg/Imu", "cdr"))
-    # writer.create_topic(rosbag2_py.TopicMetadata(0, "/odom", "nav_msgs/msg/Odometry", "cdr"))
+    writer.create_topic(rosbag2_py.TopicMetadata(0, "/imu", "sensor_msgs/msg/Imu", "cdr"))
+    writer.create_topic(rosbag2_py.TopicMetadata(0, "/odom", "nav_msgs/msg/Odometry", "cdr"))
     # writer.create_topic(rosbag2_py.TopicMetadata(0, "/pose", "geometry_msgs/msg/PoseWithCovarianceStamped", "cdr"))
-    # writer.create_topic(rosbag2_py.TopicMetadata(0, "/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", "cdr"))
+    writer.create_topic(rosbag2_py.TopicMetadata(0, "/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", "cdr"))
     writer.create_topic(rosbag2_py.TopicMetadata(0, "/tf", "tf2_msgs/msg/TFMessage", "cdr"))
     writer.create_topic(rosbag2_py.TopicMetadata(0, "/tf_static", "tf2_msgs/msg/TFMessage", "cdr", [latch_qos]))
     # writer.create_topic(rosbag2_py.TopicMetadata(0, "/drivable_area", "foxglove_msgs/msg/Grid", "cdr"))
@@ -508,6 +587,13 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
             writer.write("/tf", serialize_message(msg), cur_stamp)
             msg = get_static_tf(sensors, cur_stamp)
             writer.write("/tf_static", serialize_message(msg), cur_stamp)
+
+            msg = get_imu(anno, cur_stamp)
+            writer.write("/imu", serialize_message(msg), cur_stamp)
+            msg = get_odom(anno, cur_stamp)
+            writer.write("/odom", serialize_message(msg), cur_stamp)
+            msg = get_steering(anno, cur_stamp)
+            writer.write("/diagnostics", serialize_message(msg), cur_stamp)
 
             msg = get_annotation_markers(bounding_boxes, cur_stamp)
             writer.write("/markers/annotations", serialize_message(msg), cur_stamp)
