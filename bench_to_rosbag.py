@@ -493,7 +493,7 @@ def get_steering(anno: dict, stamp: int):
     status.values.append(kv1)
     kv2 = KeyValue()
     kv2.key = "value"
-    kv2.value = str(anno["steer"])
+    kv2.value = str(-anno["steer"])
     status.values.append(kv2)
     msg.status.append(status)
     return msg
