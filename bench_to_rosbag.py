@@ -514,7 +514,7 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     # Create writer
     rosbag.mkdir(parents=True, exist_ok=True)
     rosbag_path = rosbag.joinpath(scene_name)
-    storage_options = rosbag2_py.StorageOptions(uri=str(rosbag_path), storage_id="mcap")
+    storage_options = rosbag2_py.StorageOptions(uri=str(rosbag_path), storage_id="mcap", custom_data={"map": map_name})
     converter_options = rosbag2_py.ConverterOptions("", "")
     writer = rosbag2_py.SequentialWriter()
     writer.open(storage_options, converter_options)
