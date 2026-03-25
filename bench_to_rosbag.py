@@ -122,7 +122,12 @@ def get_lidar(file: Path, frame_id: str, stamp: int):
     x = las.x * 1.0 + 0.39
     y = las.y * -1.0
     z = las.z * 1.0 - 1.84
-    points = np.vstack((x, y, z)).T
+
+    # 以LIDAR原点绕Z轴逆时针旋转90度（Rz(+90°)）
+    x_rot = -y
+    y_rot = x
+    z_rot = z
+    points = np.vstack((x_rot, y_rot, z_rot)).T
     # intensity = np.vstack((las.intensity)).T
 
     header = Header()
@@ -208,7 +213,13 @@ def get_static_tf(sensors: dict, stamp: int):
             T = np.array(sensors[frame_id]["lidar2ego"])
             T_flu = matrix_fru_to_flu(T)
             translation = T_flu[0:3, 3]
-            quaternion = R.from_matrix(T_flu[0:3, 0:3]).as_quat()
+
+            # 将 lidar2ego 坐标系绕 Z 轴顺时针 90°
+            R_lidar = T_flu[0:3, 0:3]
+            R_z_cw_90 = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+            R_lidar = R_lidar @ R_z_cw_90
+
+            quaternion = R.from_matrix(R_lidar).as_quat()
         elif "radar2ego" in sensors[frame_id]:
             T = np.array(sensors[frame_id]["radar2ego"])
             T_flu = matrix_fru_to_flu(T)
