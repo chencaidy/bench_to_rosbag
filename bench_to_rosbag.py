@@ -29,6 +29,8 @@ from std_msgs.msg import Header
 from tf2_msgs.msg import TFMessage
 from visualization_msgs.msg import MarkerArray, Marker
 
+basetime_ns = 0
+
 
 def location_fru_to_flu(fru: list[3]):
     x = fru[0]
@@ -511,8 +513,8 @@ def get_steering(anno: dict, stamp: int):
 
 
 def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
-    timestamp_ns = time.time_ns()
-    print(f"Using base timestamp {timestamp_ns}")
+    global basetime_ns
+    print(f"Using base timestamp {basetime_ns}")
     scene_name = scene.name
     print(f"Loading scene {scene_name}")
 
@@ -587,7 +589,7 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
     anno_files = [p for p in anno_path.rglob("*.json.gz") if p.is_file()]
     anno_files.sort()
     for index, file in enumerate(anno_files):
-        cur_stamp = index * 100000000 + timestamp_ns
+        cur_stamp = index * 100000000 + basetime_ns
         with gzip.open(file, mode="rt", encoding="utf-8") as f:
             print(f"Reading {file} @ {cur_stamp}")
             anno = json.load(f)
@@ -654,6 +656,8 @@ def write_scene_to_mcap(scene: Path, map: Path, rosbag: Path):
             msg = get_radar(scene.joinpath("radar", radar_name), "radar_back_right", "RADAR_BACK_RIGHT", cur_stamp)
             writer.write("/RADAR_BACK_RIGHT", serialize_message(msg), cur_stamp)
 
+    basetime_ns = cur_stamp + 100000000
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -681,6 +685,10 @@ def main():
     )
 
     args = parser.parse_args()
+
+    global basetime_ns
+    basetime_ns = time.time_ns()
+
     for scene in args.dataset_dir.iterdir():
         if scene.is_dir() and not scene.name.startswith("."):
             write_scene_to_mcap(scene, args.map_dir, args.output_dir)
