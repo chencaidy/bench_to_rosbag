@@ -290,12 +290,47 @@ def get_annotation_markers(bounding_boxes: dict, stamp: int):
             marker.color.g = 1.0
             marker.color.a = 0.5
         elif bbox["class"] == "vehicle":
-            marker.ns = "vehicle.car"
-            marker.color.b = 1.0
-            marker.color.a = 0.5
-        elif bbox["class"] == "pedestrian":
+            if bbox["base_type"] == "car":
+                marker.ns = "vehicle.car"
+                marker.color.r = 1.0
+                marker.color.g = 0.62
+                marker.color.b = 0.0
+                marker.color.a = 0.5
+            elif bbox["base_type"] == "truck":
+                marker.ns = "vehicle.truck"
+                marker.color.r = 1.0
+                marker.color.g = 0.39
+                marker.color.b = 0.28
+                marker.color.a = 0.5
+            elif bbox["base_type"] == "van":
+                marker.ns = "vehicle.bus.rigid"
+                marker.color.r = 1.0
+                marker.color.g = 0.39
+                marker.color.b = 0.28
+                marker.color.a = 0.5
+            elif bbox["base_type"] == "bus":
+                marker.ns = "vehicle.bus.rigid"
+                marker.color.r = 1.0
+                marker.color.g = 0.39
+                marker.color.b = 0.28
+                marker.color.a = 0.5
+            elif bbox["base_type"] == "motorcycle":
+                marker.ns = "vehicle.motorcycle"
+                marker.color.r = 1.0
+                marker.color.g = 0.24
+                marker.color.b = 0.39
+                marker.color.a = 0.5
+            elif bbox["base_type"] == "bicycle":
+                marker.ns = "vehicle.bicycle"
+                marker.color.r = 0.86
+                marker.color.g = 0.08
+                marker.color.b = 0.24
+                marker.color.a = 0.5
+        elif bbox["class"] == "walker":
             marker.ns = "human.pedestrian.adult"
-            marker.color.r = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 0.9
             marker.color.a = 0.5
         else:
             marker.ns = "movable_object.barrier"
